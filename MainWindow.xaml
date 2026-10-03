@@ -1,0 +1,1670 @@
+<Window x:Class="EcoPowerMonitor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:EcoPowerMonitor.Converters"
+        mc:Ignorable="d"
+        Title="{Binding LAppTitle}"
+        Height="840" Width="1120"
+        MinHeight="680" MinWidth="960"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        WindowStyle="None"
+        AllowsTransparency="False"
+        Background="{DynamicResource BgBrush}"
+        Foreground="{DynamicResource TextPrimaryBrush}"
+        Icon="/app.ico"
+        FontFamily="{StaticResource PrimaryFont}">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome GlassFrameThickness="0"
+                      CornerRadius="0"
+                      CaptionHeight="46"
+                      ResizeBorderThickness="6"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo Description="{Binding TaskbarDescription}"
+                         ProgressState="{Binding TaskbarProgressState}"
+                         ProgressValue="{Binding TaskbarProgressValue}" />
+    </Window.TaskbarItemInfo>
+
+    <Window.Resources>
+        <!-- BindingProxy for DataGrid Column Headers DataContext inheritance -->
+        <converters:BindingProxy x:Key="Proxy" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <converters:StringEmptyToVisibilityConverter x:Key="StringEmptyToVis" />
+        <converters:BoolToEnabledDisabledConverter x:Key="BoolToStatus" />
+    </Window.Resources>
+
+    <Border x:Name="MainRootBorder" Background="{DynamicResource BgBrush}" ClipToBounds="True">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- Custom Windows 11 Titlebar -->
+                <RowDefinition Height="*" />    <!-- Client Content Area -->
+            </Grid.RowDefinitions>
+
+            <!-- 1. Custom Windows 11 Fluent Frameless Titlebar -->
+            <Border x:Name="TitlebarBorder" Grid.Row="0" Height="46" Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Titlebar Brand & Status (Left) -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                        <Border Width="28" Height="28" CornerRadius="8" 
+                                Background="{DynamicResource AccentSubtleBrush}" 
+                                BorderBrush="{DynamicResource CardBorderBrush}" 
+                                BorderThickness="1" 
+                                Margin="0,0,10,0">
+                            <Path Data="{StaticResource IconBoltGeometry}" 
+                                  Fill="{DynamicResource CyanAccentBrush}" 
+                                  Stretch="Uniform" 
+                                  Width="13" Height="13" 
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        
+                        <TextBlock Text="EcoPower" FontWeight="Bold" FontSize="15" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                        <Border Background="{DynamicResource AccentSubtleBrush}" 
+                                BorderBrush="{DynamicResource CardBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Margin="6,0,0,0" 
+                                Padding="5,1" 
+                                VerticalAlignment="Center">
+                            <TextBlock Text="PRO" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource CyanAccentBrush}" />
+                        </Border>
+                        <Border Background="{DynamicResource BgBrush}" 
+                                BorderBrush="{DynamicResource CyanAccentBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="4" 
+                                Margin="5,0,0,0" 
+                                Padding="5,1" 
+                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="DEV: " FontSize="9" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBlock Text="SoDa" FontSize="9" FontWeight="Black" Foreground="{DynamicResource CyanAccentBrush}" />
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="• 100% OFFLINE TELEMETRY" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="8,0,0,0" VerticalAlignment="Center" />
+
+                        <!-- Live Status Breathing Indicator -->
+                        <Border Background="{DynamicResource AccentSubtleBrush}" 
+                                BorderBrush="{DynamicResource CardBorderBrush}" 
+                                BorderThickness="1" 
+                                CornerRadius="12" 
+                                Padding="8,3" 
+                                VerticalAlignment="Center" 
+                                Margin="12,0,0,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="7" Height="7" Fill="{DynamicResource EmeraldAccentBrush}" Margin="0,0,6,0" VerticalAlignment="Center">
+                                    <Ellipse.Effect>
+                                        <DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.85" />
+                                    </Ellipse.Effect>
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1.0" To="0.3" Duration="0:0:1.2">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <SineEase EasingMode="EaseInOut" />
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                                <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource EmeraldAccentBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Right Controls: Mini HUD, Language, Theme & Win11 Caption Buttons -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Mini HUD Toggle Button -->
+                        <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Click="BtnMiniHud_Click" 
+                                Padding="10,4"
+                                Margin="0,0,6,0"
+                                ToolTip="สลับเป็นโหมด Mini HUD ปักหมุดมุมจอ">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconDashboardGeometry}" 
+                                      Fill="{DynamicResource TextPrimaryBrush}" 
+                                      Stretch="Uniform" 
+                                      Width="12" Height="12" 
+                                      Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Mini HUD" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Language Toggle Button -->
+                        <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Command="{Binding ToggleLanguageCommand}" 
+                                ToolTip="{Binding LanguageTooltip}"
+                                Padding="10,4"
+                                Margin="0,0,6,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconGlobeGeometry}" 
+                                      Fill="{DynamicResource CyanAccentBrush}" 
+                                      Stretch="Uniform" 
+                                      Width="12" Height="12" 
+                                      Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding LanguageDisplayText}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Theme Toggle Button -->
+                        <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Command="{Binding ToggleThemeCommand}"
+                                ToolTip="{Binding ThemeTooltip}"
+                                Padding="10,4"
+                                Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Stretch="Uniform" Width="12" Height="12" Margin="0,0,5,0" VerticalAlignment="Center">
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Data" Value="{StaticResource IconSunGeometry}" />
+                                            <Setter Property="Fill" Value="{DynamicResource AmberAccentBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDarkMode}" Value="False">
+                                                    <Setter Property="Data" Value="{StaticResource IconMoonGeometry}" />
+                                                    <Setter Property="Fill" Value="{DynamicResource AzureAccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
+                                <TextBlock Text="{Binding ThemeDisplayText}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Windows 11 Chrome Caption Buttons -->
+                        <Button x:Name="BtnMinimize"
+                                Style="{StaticResource Win11MinimizeButtonStyle}"
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Command="{Binding MinimizeWindowCommand}">
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource FluentCaptionToolTipStyle}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TooltipMinimizeTitle}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,0">
+                                            <TextBlock Text="Win" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="+" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                            <TextBlock Text="↓" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Button.ToolTip>
+                            <Path Data="{StaticResource IconWindowMinGeometry}" 
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
+                                  Width="10" Height="10" Stretch="Uniform" />
+                        </Button>
+
+                        <Button x:Name="BtnMaximize"
+                                Style="{StaticResource Win11MaximizeButtonStyle}"
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Command="{Binding MaximizeRestoreWindowCommand}">
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource FluentCaptionToolTipStyle}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TooltipMaximizeTitle}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,0">
+                                            <TextBlock Text="Win" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="+" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                            <TextBlock Text="{Binding TooltipMaximizeKey}" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Button.ToolTip>
+                            <Path x:Name="BtnMaximizeIcon" 
+                                  Data="{StaticResource IconWindowMaxGeometry}" 
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
+                                  Width="10" Height="10" Stretch="Uniform" />
+                        </Button>
+
+                        <Button x:Name="BtnClose"
+                                Style="{StaticResource Win11CloseButtonStyle}"
+                                WindowChrome.IsHitTestVisibleInChrome="True"
+                                Command="{Binding CloseWindowCommand}">
+                            <Button.ToolTip>
+                                <ToolTip Style="{StaticResource FluentCaptionToolTipStyle}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding TooltipCloseTitle}" FontWeight="SemiBold" FontSize="11" Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1" Margin="0,0,3,0">
+                                            <TextBlock Text="Alt" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                        <TextBlock Text="+" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,3,0" VerticalAlignment="Center" />
+                                        <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="5,1">
+                                            <TextBlock Text="F4" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Button.ToolTip>
+                            <Path Data="{StaticResource IconWindowCloseGeometry}" 
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
+                                  Width="10" Height="10" Stretch="Uniform" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 2. Client Body Area -->
+            <Grid Grid.Row="1" Margin="22,12,22,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- Alert / Admin Banners -->
+                    <RowDefinition Height="*" />    <!-- Main Tabs -->
+                    <RowDefinition Height="Auto" /> <!-- Toast Notification -->
+                </Grid.RowDefinitions>
+
+                <!-- Alert & Elevation Banners -->
+                <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <!-- Overpower / High Temp Alert Banner -->
+            <Border Margin="0,0,0,8" Padding="16,12" CornerRadius="8"
+                    Background="{DynamicResource AlertBgBrush}" 
+                    BorderBrush="{DynamicResource AlertBorderBrush}" 
+                    BorderThickness="1"
+                    Visibility="{Binding CurrentReading.HasAlert, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Path Data="{StaticResource IconFlameGeometry}" 
+                          Fill="{DynamicResource AlertTextBrush}" 
+                          Stretch="Uniform" 
+                          Width="16" Height="16" 
+                          Margin="0,0,10,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding CurrentReading.AlertMessage}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource AlertTextBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Elevation Banner (When running in standard user mode) -->
+            <Border Padding="14,10" CornerRadius="8"
+                    Background="{DynamicResource AccentSubtleBrush}" 
+                    BorderBrush="{DynamicResource CardBorderBrush}" 
+                    BorderThickness="1"
+                    Visibility="{Binding ShowAdminBanner, Converter={StaticResource BoolToVis}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconShieldGeometry}" 
+                              Fill="{DynamicResource TextPrimaryBrush}" 
+                              Stretch="Uniform" 
+                              Width="15" Height="15" 
+                              Margin="0,0,10,0" VerticalAlignment="Center" />
+                        <TextBlock Text="รันในโหมดปกติ: กำลังไฟแบตเตอรี่ &amp; GPU พร้อมใช้งาน (คลิกเพื่อขอสิทธิ์ Admin สำหรับเปิดเซนเซอร์ MSR CPU เชิงลึก)" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource ModernButtonStyle}" Command="{Binding RestartAsAdminCommand}" Padding="12,5" Margin="12,0,0,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconShieldGeometry}" 
+                                  Fill="{DynamicResource TextPrimaryBrush}" 
+                                  Stretch="Uniform" 
+                                  Width="13" Height="13" 
+                                  Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="ยกระดับสิทธิ์ (Run as Admin)" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <!-- 2. Main Navigation & Content Tabs -->
+        <TabControl Grid.Row="1" Style="{StaticResource ModernTabControlStyle}" SelectedIndex="{Binding SelectedTabIndex}">
+            
+            <!-- TAB 1: OVERVIEW -->
+            <TabItem Style="{StaticResource ModernTabItemStyle}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconDashboardGeometry}" 
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" 
+                              Stretch="Uniform" 
+                              Width="14" Height="14" 
+                              Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LTabOverview}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,14,0,0">
+                    <Grid>
+                        <Grid.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.22">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="8" To="0" Duration="0:0:0.22">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Grid.Triggers>
+                        <Grid.RenderTransform>
+                            <TranslateTransform Y="0" />
+                        </Grid.RenderTransform>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /> <!-- Hero & Metrics Row -->
+                            <RowDefinition Height="Auto" /> <!-- Live Chart -->
+                            <RowDefinition Height="Auto" /> <!-- Component Cards -->
+                            <RowDefinition Height="Auto" /> <!-- Top 5 Power Apps -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Top Hero & Metrics Grid -->
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.15*" />
+                                <ColumnDefinition Width="1.35*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Hero Card: Total System Power -->
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,10,0">
+                                <StackPanel VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Path Data="{StaticResource IconBoltGeometry}" 
+                                              Fill="{DynamicResource TextSecondaryBrush}" 
+                                              Stretch="Uniform" 
+                                              Width="14" Height="14" 
+                                              Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LCurrentPower}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    
+                                    <!-- Big Glanceable Numbers (Smooth LERP Animation) -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,6">
+                                        <TextBlock Text="{Binding FormattedDisplayedWatts}" 
+                                                   FontSize="52" FontWeight="Bold" 
+                                                   Typography.NumeralAlignment="Tabular"
+                                                   Foreground="{DynamicResource TextPrimaryBrush}" />
+                                        <TextBlock Text=" W" FontSize="24" FontWeight="SemiBold" 
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" 
+                                                   VerticalAlignment="Bottom" Margin="4,0,0,10" />
+                                    </StackPanel>
+
+                                    <!-- Realtime Cost Breakdown Micro-Card -->
+                                    <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,4,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Per Hour -->
+                                            <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                                                <TextBlock Text="{Binding FormattedCostPerHour}" FontWeight="Bold" FontSize="14" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{Binding LPerHour}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <Separator Grid.Column="1" Background="{DynamicResource CardBorderBrush}" Margin="8,2" />
+
+                                            <!-- Per Day -->
+                                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                                <TextBlock Text="{Binding FormattedCostPerDay}" FontWeight="Bold" FontSize="14" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{Binding LPerDay}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                                            </StackPanel>
+
+                                            <Separator Grid.Column="3" Background="{DynamicResource CardBorderBrush}" Margin="8,2" />
+
+                                            <!-- Per Month -->
+                                            <StackPanel Grid.Column="4" HorizontalAlignment="Center">
+                                                <TextBlock Text="{Binding FormattedCostPerMonth}" FontWeight="Bold" FontSize="14" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center" />
+                                                <TextBlock Text="{Binding LPerMonth}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- TOU Tariff Rate & Carbon Footprint (CO2e) Micro-Card -->
+                                    <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,7" Margin="0,8,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Left: TOU Tariff Rate -->
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Data="{StaticResource IconBoltGeometry}" Fill="{DynamicResource AmberAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding TouStatusBadgeText}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                    <TextBlock Text="{Binding FormattedActiveTariff}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <Separator Grid.Column="1" Background="{DynamicResource CardBorderBrush}" Margin="8,2" />
+
+                                            <!-- Right: Carbon Footprint (CO2e) -->
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Data="{StaticResource IconTreeGeometry}" Fill="{DynamicResource EmeraldAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding FormattedCarbonPerHour}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource EmeraldAccentBrush}" />
+                                                        <TextBlock Text=" CO₂e" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" Margin="2,0,0,0" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding FormattedEquivalentTrees, StringFormat='ดูดซับ: {0}'}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Session Metrics 4-Box Grid -->
+                            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="10,0,0,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Average Watts -->
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="8,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                            <Path Data="{StaticResource IconGaugeGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LAverageWatts}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Statistics.AverageWatts, StringFormat='{}{0:F1} W'}" FontSize="20" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- Peak Watts -->
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                            <Path Data="{StaticResource IconFlameGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LPeakWatts}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Statistics.PeakWatts, StringFormat='{}{0:F1} W'}" FontSize="20" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- Min Watts -->
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="8,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                            <Path Data="{StaticResource IconLeafGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LMinWatts}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Statistics.MinWatts, StringFormat='{}{0:F1} W'}" FontSize="20" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </StackPanel>
+
+                                    <!-- Session Accumulated Energy & Cost -->
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,6">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                            <Path Data="{StaticResource IconEnergyGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LSessionEnergy}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Statistics.AccumulatedKWh, StringFormat='{}{0:F3} kWh'}" FontSize="17" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding FormattedAccumulatedCost, StringFormat=' ({0})'}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="4,0,0,2" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- Middle Row: Live Smooth Wave Chart (Fixed coordinates inside Viewbox) -->
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,16">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconDashboardGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LLiveGraphTitle}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <Border HorizontalAlignment="Right" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                                        <TextBlock Text="{Binding CurrentReading.TotalWatts, StringFormat='LIVE: {0:F1} W'}" FontWeight="Bold" FontSize="12" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </Border>
+                                </Grid>
+
+                                <!-- Wave Canvas Container with 2-Column Telemetry Oscillograph Grid -->
+                                <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Height="130" ClipToBounds="True">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="52" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Live Power Curve Line & Area Gradient (Column 0) -->
+                                        <Viewbox Grid.Column="0" Stretch="Fill" Margin="2,0,0,0">
+                                            <Canvas Width="460" Height="120">
+                                                <!-- Synchronized Coordinate Grid Lines (100%, 50%, 0%) -->
+                                                <Line X1="0" Y1="10" X2="460" Y2="10" Stroke="{DynamicResource GraphGridBrush}" StrokeDashArray="4 4" StrokeThickness="1" />
+                                                <Line X1="0" Y1="61" X2="460" Y2="61" Stroke="{DynamicResource GraphGridBrush}" StrokeDashArray="4 4" StrokeThickness="1" />
+                                                <Line X1="0" Y1="112" X2="460" Y2="112" Stroke="{DynamicResource GraphGridBrush}" StrokeDashArray="4 4" StrokeThickness="1" />
+
+                                                <!-- Gradient Area Fill Under Wave -->
+                                                <Polygon Points="{Binding LiveGraphAreaPoints}"
+                                                         Fill="{DynamicResource GraphAreaGradientBrush}" />
+
+                                                <!-- High-Precision Telemetry Line -->
+                                                <Polyline Points="{Binding LiveGraphPoints}"
+                                                          Stroke="{DynamicResource GraphLineBrush}"
+                                                          StrokeThickness="2.2"
+                                                          StrokeLineJoin="Round" />
+
+                                                <!-- Live Oscilloscope Head Pulse Dot -->
+                                                <Ellipse Canvas.Left="{Binding GraphHeadX}" Canvas.Top="{Binding GraphHeadY}"
+                                                         Width="10" Height="10" Margin="-5,-5,0,0"
+                                                         Fill="{DynamicResource GraphLineBrush}"
+                                                         Visibility="{Binding HasGraphHead, Converter={StaticResource BoolToVis}}">
+                                                    <Ellipse.Effect>
+                                                        <DropShadowEffect Color="#06B6D4" BlurRadius="8" ShadowDepth="0" Opacity="0.95" />
+                                                    </Ellipse.Effect>
+                                                </Ellipse>
+                                                <Ellipse Canvas.Left="{Binding GraphHeadX}" Canvas.Top="{Binding GraphHeadY}"
+                                                         Width="4" Height="4" Margin="-2,-2,0,0"
+                                                         Fill="#FFFFFF"
+                                                         Visibility="{Binding HasGraphHead, Converter={StaticResource BoolToVis}}" />
+                                            </Canvas>
+                                        </Viewbox>
+
+                                        <!-- Dedicated Engineering Y-Axis Reference Scale Marks (Column 1) -->
+                                        <Grid Grid.Column="1" Margin="0,6,10,6">
+                                            <TextBlock Text="{Binding GraphMaxWatts, StringFormat='{}{0:F0} W'}" HorizontalAlignment="Right" VerticalAlignment="Top" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Opacity="0.75" />
+                                            <TextBlock Text="{Binding GraphMidWatts, StringFormat='{}{0:F0} W'}" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Opacity="0.75" />
+                                            <TextBlock Text="0 W" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" Opacity="0.75" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Bottom Row: 3 Hardware Cards (CPU / GPU / Battery) -->
+                        <Grid Grid.Row="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- CPU Card -->
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <Path Data="{StaticResource IconChipGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LCpuPower}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding CurrentReading.CpuName}" TextTrimming="CharacterEllipsis" FontSize="13" FontWeight="Bold" Margin="0,2,0,8" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding CurrentReading.CpuPackageWatts, StringFormat='{}{0:F1}'}" FontSize="30" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                                        <TextBlock Text=" W" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="2,0,0,5" />
+                                    </StackPanel>
+
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="0,0,4,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LTemperature}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding CurrentReading.CpuTemperature, StringFormat='{}{0:F0} °C'}" FontWeight="SemiBold" FontSize="13" Typography.NumeralAlignment="Tabular" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="4,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LLoad}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding CurrentReading.CpuLoadPercentage, StringFormat='{}{0:F0}%'}" FontWeight="SemiBold" FontSize="13" Typography.NumeralAlignment="Tabular" />
+                                                <ProgressBar Style="{StaticResource ModernProgressBarStyle}" Value="{Binding CurrentReading.CpuLoadPercentage}" Maximum="100" Margin="0,4,0,0" Foreground="{DynamicResource CyanAccentBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- GPU Card -->
+                            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="8,0,8,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <Path Data="{StaticResource IconGpuGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LGpuPower}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="{Binding CurrentReading.GpuName}" TextTrimming="CharacterEllipsis" FontSize="13" FontWeight="Bold" Margin="0,2,0,8" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding CurrentReading.GpuPowerWatts, StringFormat='{}{0:F1}'}" FontSize="30" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                                        <TextBlock Text=" W" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="2,0,0,5" />
+                                    </StackPanel>
+
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="0,0,4,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LTemperature}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding CurrentReading.GpuTemperature, StringFormat='{}{0:F0} °C'}" FontWeight="SemiBold" FontSize="13" Typography.NumeralAlignment="Tabular" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="4,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LLoad}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                <TextBlock Text="{Binding CurrentReading.GpuLoadPercentage, StringFormat='{}{0:F0}%'}" FontWeight="SemiBold" FontSize="13" Typography.NumeralAlignment="Tabular" />
+                                                <ProgressBar Style="{StaticResource ModernProgressBarStyle}" Value="{Binding CurrentReading.GpuLoadPercentage}" Maximum="100" Margin="0,4,0,0" Foreground="{DynamicResource PurpleAccentBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Battery / AC Power Card -->
+                            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="8,0,0,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                        <Path Data="{StaticResource IconBatteryGeometry}" Fill="{DynamicResource TextSecondaryBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LBatteryStatus}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    
+                                    <!-- Laptop Battery View -->
+                                    <StackPanel Visibility="{Binding CurrentReading.HasBattery, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Margin="0,2,0,8">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding CurrentReading.BatteryPercentage, StringFormat='{}{0:F0}%'}" FontSize="14" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                                                <TextBlock Text="{Binding CurrentReading.BatteryChargeStatusText}" FontSize="11" Margin="6,0,0,0" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <ProgressBar Style="{StaticResource ModernProgressBarStyle}" Value="{Binding CurrentReading.BatteryPercentage}" Maximum="100" Margin="0,4,0,0" Foreground="{DynamicResource EmeraldAccentBrush}" />
+                                        </StackPanel>
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBlock Text="{Binding CurrentReading.BatteryRateWatts, StringFormat='{}{0:F1}'}" FontSize="30" FontWeight="Bold" Typography.NumeralAlignment="Tabular" />
+                                            <TextBlock Text=" W" FontSize="14" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Bottom" Margin="2,0,0,5" />
+                                        </StackPanel>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="0,0,4,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding LBatteryRemaining}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Text="{Binding CurrentReading.FormattedBatteryRemaining}" FontWeight="SemiBold" FontSize="12" Typography.NumeralAlignment="Tabular" TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" CornerRadius="6" Padding="8,4" Margin="4,0,0,0">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding LWearLevel}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBlock Text="{Binding CurrentReading.BatteryWearLevelPercentage, StringFormat='{}{0:F1}%'}" FontWeight="SemiBold" FontSize="13" Typography.NumeralAlignment="Tabular" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- Desktop Power View (No Battery) -->
+                                    <StackPanel Visibility="{Binding CurrentReading.HasBattery, Converter={StaticResource InverseBoolToVis}}">
+                                        <TextBlock Text="{Binding LDesktopPowerNotice}" FontSize="13" FontWeight="Bold" Margin="0,4,0,6" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                            <Path Data="{StaticResource IconPlugGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="AC 220V-240V Mains" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                        <TextBlock Text="Direct stable PSU line • Zero battery cycle wear" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- Row 3: Top 5 Power-Hungry Applications Telemetry Card -->
+                        <Border Grid.Row="3" Style="{StaticResource CardStyle}" Margin="0,16,0,8">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,12">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconAppsGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LTopPowerApps}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                            <TextBlock Text="{Binding LTopAppsSub}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <Border HorizontalAlignment="Right" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="10,4">
+                                        <TextBlock Text="AUTO 2s REFRESH" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                    </Border>
+                                </Grid>
+
+                                <!-- Process Items Header Bar -->
+                                <Border Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="14,7" Margin="0,0,0,4">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="48" />
+                                            <ColumnDefinition Width="2.2*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                            <ColumnDefinition Width="1.1*" />
+                                            <ColumnDefinition Width="1.1*" />
+                                            <ColumnDefinition Width="1.1*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding LColRank}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding LColProgram}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding LColCpuLoad}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding LColMemory}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Grid.Column="4" Text="{Binding LColEstPower}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="5" Text="{Binding LColCostHour}" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Process Rows ItemsControl -->
+                                <ItemsControl ItemsSource="{Binding TopPowerProcesses}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource CardBgBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1" Padding="14,9">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="48" />
+                                                        <ColumnDefinition Width="2.2*" />
+                                                        <ColumnDefinition Width="1.4*" />
+                                                        <ColumnDefinition Width="1.1*" />
+                                                        <ColumnDefinition Width="1.1*" />
+                                                        <ColumnDefinition Width="1.1*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Rank Badge -->
+                                                    <Border Grid.Column="0" Width="22" Height="22" CornerRadius="11" 
+                                                            Background="{DynamicResource AccentSubtleBrush}" 
+                                                            BorderBrush="{DynamicResource CardBorderBrush}" 
+                                                            BorderThickness="1" 
+                                                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Rank}" FontSize="11" FontWeight="Bold" 
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Rank}" Value="1">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource AmberAccentBrush}" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Rank}" Value="2">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource CyanAccentBrush}" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+
+                                                    <!-- Program Display Name & Process Name -->
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                        <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding ProcessName, StringFormat='{}{0}.exe'}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,0" />
+                                                    </StackPanel>
+
+                                                    <!-- CPU Load Bar & Value -->
+                                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                        <TextBlock Text="{Binding FormattedCpu}" FontSize="12" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                                        <ProgressBar Style="{StaticResource ModernProgressBarStyle}" Value="{Binding CpuPercentage}" Maximum="100" Height="4" Margin="0,3,0,0" Foreground="{DynamicResource AzureAccentBrush}" />
+                                                    </StackPanel>
+
+                                                    <!-- RAM Memory -->
+                                                    <TextBlock Grid.Column="3" Text="{Binding FormattedMemory}" FontSize="12" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+
+                                                    <!-- Estimated Power (Watts) -->
+                                                    <TextBlock Grid.Column="4" Text="{Binding FormattedWatts}" FontSize="13" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource CyanAccentBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+
+                                                    <!-- Hourly Cost -->
+                                                    <TextBlock Grid.Column="5" Text="{Binding FormattedCostPerHour}" FontSize="12" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- TAB 2: DETAILED SENSORS -->
+            <TabItem Style="{StaticResource ModernTabItemStyle}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconChipGeometry}" 
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" 
+                              Stretch="Uniform" 
+                              Width="14" Height="14" 
+                              Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LTabSensors}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="0,14,0,0">
+                    <Grid.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.22">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="8" To="0" Duration="0:0:0.22">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Grid.Triggers>
+                    <Grid.RenderTransform>
+                        <TranslateTransform Y="0" />
+                    </Grid.RenderTransform>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Search Filter Box with Icon & Quick Category Filter Chips -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBox Grid.Column="0" 
+                                     Style="{StaticResource ModernTextBoxStyle}" 
+                                     Padding="36,9,12,9"
+                                     Text="{Binding SearchFilter, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <!-- Search Icon -->
+                            <Path Grid.Column="0" 
+                                  Data="{StaticResource IconSearchGeometry}" 
+                                  Fill="{DynamicResource TextSecondaryBrush}" 
+                                  Stretch="Uniform" 
+                                  Width="14" Height="14" 
+                                  HorizontalAlignment="Left" 
+                                  VerticalAlignment="Center" 
+                                  Margin="14,0,0,0" 
+                                  IsHitTestVisible="False" />
+
+                            <TextBlock Grid.Column="0" 
+                                       Text="{Binding LSearchPlaceholder}" 
+                                       IsHitTestVisible="False" 
+                                       Margin="36,9,0,0" 
+                                       Foreground="{DynamicResource TextSecondaryBrush}"
+                                       Visibility="{Binding SearchFilter, Converter={StaticResource StringEmptyToVis}}" />
+
+                            <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="14,6" Margin="12,0,0,0">
+                                <TextBlock Text="{Binding FilteredSensors.Count, StringFormat='Sensors: {0}'}" 
+                                           VerticalAlignment="Center" 
+                                           FontSize="12" 
+                                           FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                            </Border>
+                        </Grid>
+
+                        <!-- Quick Filter Category Chips -->
+                        <WrapPanel Orientation="Horizontal">
+                            <!-- All -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="All" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconDashboardGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatAll}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Power (W) -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="Power" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconBoltGeometry}" Fill="{DynamicResource AmberAccentBrush}" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatPower}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Temperature (°C) -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="Temperature" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconGaugeGeometry}" Fill="{DynamicResource CoralAccentBrush}" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatTemp}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Load (%) -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="Load" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconChipGeometry}" Fill="{DynamicResource PurpleAccentBrush}" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatLoad}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Clock -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="Clock" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconRefreshGeometry}" Fill="{DynamicResource AzureAccentBrush}" Stretch="Uniform" Width="11" Height="11" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatClock}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- Fan -->
+                            <Button Style="{StaticResource PillToggleButtonStyle}" 
+                                    Command="{Binding SelectSensorCategoryCommand}" 
+                                    CommandParameter="Fan" 
+                                    Margin="0,0,8,6" Padding="14,5">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconFanGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LCatFan}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Sensor DataGrid (Bound using BindingProxy for headers) -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding FilteredSensors}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{Binding Data.LColHardware, Source={StaticResource Proxy}}" Binding="{Binding HardwareName}" Width="1.8*" />
+                            <DataGridTextColumn Header="{Binding Data.LColSensor, Source={StaticResource Proxy}}" Binding="{Binding SensorName}" Width="2*" />
+                            <DataGridTextColumn Header="{Binding Data.LColType, Source={StaticResource Proxy}}" Binding="{Binding SensorType}" Width="1.2*" />
+                            <DataGridTextColumn Header="{Binding Data.LColValue, Source={StaticResource Proxy}}" Binding="{Binding FormattedValue}" Width="1.2*" FontWeight="Bold" />
+                            <DataGridTextColumn Header="{Binding Data.LColMin, Source={StaticResource Proxy}}" Binding="{Binding FormattedMin}" Width="1*" />
+                            <DataGridTextColumn Header="{Binding Data.LColMax, Source={StaticResource Proxy}}" Binding="{Binding FormattedMax}" Width="1*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 3: HISTORY & COST -->
+            <TabItem Style="{StaticResource ModernTabItemStyle}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconHistoryGeometry}" 
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" 
+                              Stretch="Uniform" 
+                              Width="14" Height="14" 
+                              Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LTabHistory}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="0,14,0,0">
+                    <Grid.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.22">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="8" To="0" Duration="0:0:0.22">
+                                        <DoubleAnimation.EasingFunction>
+                                            <CubicEase EasingMode="EaseOut" />
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Grid.Triggers>
+                    <Grid.RenderTransform>
+                        <TranslateTransform Y="0" />
+                    </Grid.RenderTransform>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- History KPI Summary Cards & Action Bar -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,14">
+                        <!-- Top Row: 4 Executive KPI Cards -->
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- KPI 1: Lifetime Energy -->
+                            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,6,0" Padding="14,10">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Path Data="{StaticResource IconEnergyGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LKpiLifetimeEnergy}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FormattedLifetimeEnergy}" FontSize="18" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- KPI 2: Lifetime Total Cost -->
+                            <Border Grid.Column="1" Style="{StaticResource CardStyle}" Margin="6,0,6,0" Padding="14,10">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Path Data="{StaticResource IconBoltGeometry}" Fill="{DynamicResource EmeraldAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LKpiLifetimeCost}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FormattedLifetimeCost}" FontSize="18" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- KPI 3: Daily Average -->
+                            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="6,0,6,0" Padding="14,10">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Path Data="{StaticResource IconGaugeGeometry}" Fill="{DynamicResource AmberAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LKpiDailyAvg}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FormattedDailyAverageCost}" FontSize="18" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- KPI 4: All-Time Peak -->
+                            <Border Grid.Column="3" Style="{StaticResource CardStyle}" Margin="6,0,0,0" Padding="14,10">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Path Data="{StaticResource IconDashboardGeometry}" Fill="{DynamicResource CoralAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LKpiAllTimePeak}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding FormattedAllTimePeak}" FontSize="18" FontWeight="Bold" Typography.NumeralAlignment="Tabular" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <!-- History Actions & Summary Bar -->
+                        <Border Style="{StaticResource CardStyle}" Padding="16,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path Data="{StaticResource IconHistoryGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding LHistoricalSummary}" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <!-- Export CSV Button -->
+                                    <Button Style="{StaticResource ModernButtonStyle}" Command="{Binding ExportCsvCommand}" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource IconDownloadGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LExportCsv}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Export JSON Button -->
+                                    <Button Style="{StaticResource ModernButtonStyle}" Command="{Binding ExportJsonCommand}" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource IconDownloadGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LExportJson}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <!-- Reset Session Button (Danger/Warning Accent) -->
+                                    <Button Style="{StaticResource DangerButtonStyle}" Command="{Binding ResetSessionCommand}">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Path Data="{StaticResource IconRefreshGeometry}" Fill="{DynamicResource CoralAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LResetSession}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- History DataGrid (Bound using BindingProxy for headers) -->
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding DailyRecords}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{Binding Data.LColDate, Source={StaticResource Proxy}}" Binding="{Binding DateString}" Width="1.5*" FontWeight="Bold" />
+                            <DataGridTextColumn Header="{Binding Data.LColTotalKwh, Source={StaticResource Proxy}}" Binding="{Binding FormattedKWh}" Width="1.5*" />
+                            <DataGridTextColumn Header="{Binding Data.LColTotalCost, Source={StaticResource Proxy}}" Binding="{Binding FormattedCost}" Width="1.5*" FontWeight="Bold" />
+                            <DataGridTextColumn Header="{Binding Data.LPeakWatts, Source={StaticResource Proxy}}" Binding="{Binding FormattedPeak}" Width="1.2*" />
+                            <DataGridTextColumn Header="{Binding Data.LAverageWatts, Source={StaticResource Proxy}}" Binding="{Binding FormattedAvg}" Width="1.2*" />
+                            <DataGridTextColumn Header="{Binding Data.LColActiveTime, Source={StaticResource Proxy}}" Binding="{Binding FormattedDuration}" Width="1.2*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 4: SETTINGS -->
+            <TabItem Style="{StaticResource ModernTabItemStyle}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconSettingsGeometry}" 
+                              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}" 
+                              Stretch="Uniform" 
+                              Width="14" Height="14" 
+                              Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding LTabSettings}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </TabItem.Header>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,14,0,0">
+                    <Grid Margin="0,0,0,24">
+                        <Grid.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.22">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="8" To="0" Duration="0:0:0.22">
+                                            <DoubleAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut" />
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Grid.Triggers>
+                        <Grid.RenderTransform>
+                            <TranslateTransform Y="0" />
+                        </Grid.RenderTransform>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Left Column: Preferences & Currency / Tariffs -->
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <!-- General Preferences Card -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <Path Data="{StaticResource IconSettingsGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LGeneralSettings}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Language -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LLanguage}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="ไทย (Thai) / English" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource PillToggleButtonStyle}" Command="{Binding ToggleLanguageCommand}" Padding="14,6" ToolTip="{Binding LanguageTooltip}">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Data="{StaticResource IconGlobeGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding LanguageSwitchTargetText}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- Theme -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LTheme}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="Minimalist Monochrome Dark / Light Mode" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource PillToggleButtonStyle}" Command="{Binding ToggleThemeCommand}" Padding="14,6" ToolTip="{Binding ThemeTooltip}">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Path Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Setter Property="Data" Value="{StaticResource IconSunGeometry}" />
+                                                            <Setter Property="Fill" Value="{DynamicResource AmberAccentBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsDarkMode}" Value="False">
+                                                                    <Setter Property="Data" Value="{StaticResource IconMoonGeometry}" />
+                                                                    <Setter Property="Fill" Value="{DynamicResource AzureAccentBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock Text="{Binding ThemeSwitchTargetText}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- Sensor Polling Rate -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LSensorRefreshRate}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LRefreshRateDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.PollingRateMs, UpdateSourceTrigger=LostFocus}" />
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- Start With Windows -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LStartWithWindows}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LStartWithWindowsDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource PillToggleButtonStyle}" Command="{Binding ToggleStartWithWindowsCommand}" Padding="14,6">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Settings.StartWithWindows}" Value="True">
+                                                                    <Setter Property="Fill" Value="{DynamicResource EmeraldAccentBrush}" />
+                                                                    <Setter Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.9" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock Text="{Binding Settings.StartWithWindows, Converter={StaticResource BoolToStatus}}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- Minimize to System Tray -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LMinimizeToTray}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LMinimizeToTrayDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource PillToggleButtonStyle}" Command="{Binding ToggleMinimizeToTrayCommand}" Padding="14,6">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Settings.MinimizeToTray}" Value="True">
+                                                                    <Setter Property="Fill" Value="{DynamicResource EmeraldAccentBrush}" />
+                                                                    <Setter Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.9" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock Text="{Binding Settings.MinimizeToTray, Converter={StaticResource BoolToStatus}}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Currency & Regional Tariff Card -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <Path Data="{StaticResource IconEnergyGeometry}" Fill="{DynamicResource AmberAccentBrush}" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LCurrencyRegion}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Currency Selector -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="190" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LCurrencyRegion}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LCurrencyRegionDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" 
+                                                  ItemsSource="{Binding AvailableCurrencies}" 
+                                                  SelectedItem="{Binding SelectedCurrency}" 
+                                                  DisplayMemberPath="DisplayText"
+                                                  Style="{StaticResource ModernComboBoxStyle}" />
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- Electricity Tariff -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LElectricityTariff}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LTariffDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.ElectricityRatePerKWh, UpdateSourceTrigger=LostFocus}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Time-of-Use (TOU) Tariff & Carbon Footprint Settings Card -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <Path Data="{StaticResource IconTreeGeometry}" Fill="{DynamicResource EmeraldAccentBrush}" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LTouTariff}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Enable TOU Tariff Pill Toggle -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LTouTariff}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LTouTariffDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource PillToggleButtonStyle}" Command="{Binding ToggleTouCommand}" Padding="14,6">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Ellipse Width="7" Height="7" Margin="0,0,6,0" VerticalAlignment="Center">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Fill" Value="{DynamicResource TextSecondaryBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Settings.UseTouTariff}" Value="True">
+                                                                    <Setter Property="Fill" Value="{DynamicResource EmeraldAccentBrush}" />
+                                                                    <Setter Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect Color="#10B981" BlurRadius="6" ShadowDepth="0" Opacity="0.9" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                                <TextBlock Text="{Binding Settings.UseTouTariff, Converter={StaticResource BoolToStatus}}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+
+                                    <!-- On-Peak & Off-Peak Rates (2 columns) -->
+                                    <Grid Margin="0,4,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- On-Peak Rate -->
+                                        <Border Grid.Column="0" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,6,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LTouOnPeak}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource AmberAccentBrush}" />
+                                                <TextBlock Text="จันทร์ - ศุกร์ 09:00 - 22:00" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,6" />
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="80" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding LTouOnPeakRate}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.TouOnPeakRate, UpdateSourceTrigger=LostFocus}" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Off-Peak Rate -->
+                                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="6,0,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding LTouOffPeak}" FontWeight="Bold" FontSize="12" Foreground="{DynamicResource EmeraldAccentBrush}" />
+                                                <TextBlock Text="22:00 - 09:00 &amp; เสาร์-อาทิตย์" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,1,0,6" />
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="80" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding LTouOffPeakRate}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                    <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.TouOffPeakRate, UpdateSourceTrigger=LostFocus}" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,4,0,12" />
+
+                                    <!-- Carbon Footprint Emission Factor -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="90" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LCarbonFactor}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LCarbonFactorDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.CarbonEmissionFactor, UpdateSourceTrigger=LostFocus}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Right Column: Safety Alerts, System Specs, About Developer & Actions -->
+                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                            <!-- Alerts Settings Group -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                        <Path Data="{StaticResource IconFlameGeometry}" Fill="{DynamicResource CoralAccentBrush}" Stretch="Uniform" Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LAlertSettings}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Overpower Limit -->
+                                    <Grid Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LOverpowerLimit}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{Binding LOverpowerDesc}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.OverpowerThresholdWatts, UpdateSourceTrigger=LostFocus}" />
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,12" />
+
+                                    <!-- High Temp Limit -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="100" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding LHighTempLimit}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="Over-temperature alert for CPU/GPU silicon" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Settings.HighTempThresholdCelsius, UpdateSourceTrigger=LostFocus}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- System Hardware Telemetry Diagnostic Card -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <Path Data="{StaticResource IconChipGeometry}" Fill="{DynamicResource PurpleAccentBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LSystemHardwareSpecs}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- CPU Name -->
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="CPU" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding CurrentReading.CpuName}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </Grid>
+
+                                    <!-- GPU Name -->
+                                    <Grid Margin="0,0,0,8">
+                                        <TextBlock Text="GPU" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding CurrentReading.GpuName}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource TextPrimaryBrush}" />
+                                    </Grid>
+
+                                    <!-- Power Source -->
+                                    <Grid Margin="0,0,0,4">
+                                        <TextBlock Text="Power Source" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        <TextBlock Text="{Binding CurrentReading.FormattedBatteryRemaining}" FontWeight="Bold" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource EmeraldAccentBrush}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- About & Developer Group (Creator: SoDa) -->
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,14">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <Path Data="{StaticResource IconShieldGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="15" Height="15" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LAppInfo}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center" />
+                                    </StackPanel>
+
+                                    <!-- Creator / Lead Developer -->
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="Creator &amp; Lead Architect" FontWeight="SemiBold" FontSize="12" />
+                                            <TextBlock Text="Telemetry Engine, Mathematical Models &amp; Design" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource CyanAccentBrush}" BorderThickness="1" CornerRadius="6" Padding="14,4">
+                                            <TextBlock Text="SoDa" FontWeight="Black" FontSize="13" Foreground="{DynamicResource CyanAccentBrush}" />
+                                        </Border>
+                                    </Grid>
+
+                                    <Separator Background="{DynamicResource CardBorderBrush}" Margin="0,2,0,8" />
+
+                                    <!-- Privacy & Security Status -->
+                                    <Grid Margin="0,0,0,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="Security &amp; Air-Gapped Status" FontWeight="SemiBold" FontSize="12" />
+                                            <TextBlock Text="{Binding LAppDevCredits}" FontSize="10" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Border Grid.Column="1" Background="{DynamicResource AccentSubtleBrush}" BorderBrush="{DynamicResource EmeraldAccentBrush}" BorderThickness="1" CornerRadius="6" Padding="8,3">
+                                            <TextBlock Text="100% OFFLINE" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource EmeraldAccentBrush}" VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Settings Actions (Save & Reset Defaults) -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                                <Button Style="{StaticResource PrimaryButtonStyle}" 
+                                        Command="{Binding SaveSettingsCommand}" 
+                                        Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconSaveGeometry}" Fill="{DynamicResource BgBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LSaveSettings}" VerticalAlignment="Center" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Style="{StaticResource ModernButtonStyle}" 
+                                        Command="{Binding RestoreDefaultSettingsCommand}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Path Data="{StaticResource IconRefreshGeometry}" Fill="{DynamicResource TextPrimaryBrush}" Stretch="Uniform" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="{Binding LRestoreDefaults}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- 3. Toast Notification Popup with Slide-up Animation -->
+        <Border Grid.Row="1" 
+                Style="{StaticResource CardStyle}" 
+                Background="{DynamicResource CardBgBrush}" 
+                BorderBrush="{DynamicResource CyanAccentBrush}"
+                BorderThickness="1" 
+                CornerRadius="8" 
+                Padding="18,10"
+                HorizontalAlignment="Center" 
+                VerticalAlignment="Bottom" 
+                Margin="0,0,0,24"
+                Visibility="{Binding IsNotificationVisible, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="16" ShadowDepth="4" Opacity="0.6" />
+            </Border.Effect>
+            <Border.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.2">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" From="12" To="0" Duration="0:0:0.2">
+                                <DoubleAnimation.EasingFunction>
+                                    <CubicEase EasingMode="EaseOut" />
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Border.Triggers>
+            <Border.RenderTransform>
+                <TranslateTransform Y="0" />
+            </Border.RenderTransform>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconBoltGeometry}" Fill="{DynamicResource CyanAccentBrush}" Stretch="Uniform" Width="13" Height="13" Margin="0,0,8,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding StatusNotification}" 
+                           Foreground="{DynamicResource TextPrimaryBrush}" 
+                           FontWeight="SemiBold" 
+                           FontSize="13" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Grid>
+</Border>
+</Window>

@@ -1,0 +1,29 @@
+## Build results
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+[Pp]ublish_bin/
+
+## Visual Studio / IDE cache & personal settings
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+
+## SQLite databases & temporary files
+*.db
+*.db-wal
+*.db-shm
+*.log
+*.tmp
+*.bak
+
+## OS files
+[Tt]humbs.db
+[Dd]esktop.ini
+.DS_Store
