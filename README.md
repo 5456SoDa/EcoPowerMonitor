@@ -15,7 +15,7 @@
 > **ไม่ต้องติดตั้ง (Zero Installation):** เพียงดาวน์โหลดไฟล์โปรแกรมเดี่ยว (Single-File Portable) ไปวางไว้ที่ใดก็ได้ในเครื่อง แล้วดับเบิลคลิกเปิดใช้งานได้ทันที!
 
 1. ไปที่แท็บ **[Releases](https://github.com/5456SoDa/EcoPowerMonitor/releases)** ทางขวามือของ GitHub
-2. ดาวน์โหลดไฟล์ **`EcoPower.exe`** หรือ **`EcoPower-Windows-x64.zip`**
+2. ดาวน์โหลดไฟล์ **`EcoPower.exe`**
 3. ดับเบิลคลิกเปิดโปรแกรมใช้งานได้ทันที (รองรับทั้ง Windows 10 และ Windows 11 แบบ 64-bit)
 
 ---
